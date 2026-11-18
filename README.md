@@ -1,78 +1,84 @@
-# 🤖 Bot de Atendimento — WhatsApp + Gemini + Google Sheets
+# 🤖 Bot de Atendimento — WhatsApp (Uazapi) + Gemini
 
 Bot de **atendimento simulado** no WhatsApp para testar a inteligência do **Gemini (API gratuita)**.
-O atendimento começa, conversa e termina **sem transferir para humano**. A planilha Google serve como
-base de conhecimento (produtos, FAQ, pedidos) e como registro das conversas.
+O atendimento começa, conversa e termina **sem transferir para humano**.
 
 ```
-Cliente (WhatsApp) ──► whatsapp-web.js ──► atendimento.js ──► Gemini
-                                              │
-                                              └──► Planilha Google (Apps Script)
-                                                    • lê: Produtos, FAQ, Pedidos
-                                                    • grava: Mensagens, Atendimentos
+Cliente ──WhatsApp──► Uazapi ──webhook──► este bot (servidor.js) ──► Gemini
+                         ▲                         │
+                         └──── POST /send/text ◄───┘
 ```
 
 ## Estrutura
 
 | Arquivo | Função |
 |---|---|
-| `src/index.js` | Conecta no WhatsApp (QR Code) e repassa as mensagens |
+| `src/servidor.js` | Recebe o webhook da Uazapi e responde pelo WhatsApp |
+| `src/uazapi.js` | Envia mensagens, configura o webhook e lê os eventos da Uazapi |
+| `src/configurar-webhook.js` | Comando para apontar o webhook da instância para o bot |
 | `src/simulador.js` | Conversa pelo terminal — testa o Gemini **sem** WhatsApp |
 | `src/atendimento.js` | Início, conversa, encerramento, protocolo e timeout |
 | `src/gemini.js` | Prompt da atendente "Lia", chat com memória e resumo final |
-| `src/sheets.js` | Lê/grava a planilha (ou usa dados de exemplo + `./logs` se não configurada) |
-| `apps-script/Code.gs` | Código para colar no Apps Script da planilha |
+| `src/armazenamento.js` | Lê `dados/base.json` e grava registros em `logs/` |
+| `dados/base.json` | Produtos, FAQ e pedidos fictícios — edite à vontade |
 
 ## Passo a passo
 
-### 1. Pré-requisitos
-- [Node.js 18+](https://nodejs.org)
-- Chave gratuita do Gemini: https://aistudio.google.com/apikey
-
-### 2. Instalar
+### 1. Instalar
+Precisa de [Node.js 18+](https://nodejs.org).
 ```bash
 npm install
 cp .env.example .env     # no Windows: copy .env.example .env
 ```
-Abra o `.env` e cole sua `GEMINI_API_KEY`.
+Preencha no `.env`:
+- `GEMINI_API_KEY` — chave gratuita em https://aistudio.google.com/apikey
+- `UAZAPI_URL` — endereço do seu servidor Uazapi (ex.: `https://suaempresa.uazapi.com`)
+- `UAZAPI_TOKEN` — token da **instância** conectada ao número do bot
+- `BOT_NUMERO` — número do bot com 55 + DDD (ex.: `5527999999999`)
 
-### 3. Testar só a IA (sem WhatsApp) — recomendado começar por aqui
+### 2. Testar só a IA (sem WhatsApp)
 ```bash
 npm run simular
 ```
-Exemplos para testar: *"Oi, quero saber do meu pedido 1001"*, *"Vocês têm tênis?"*,
-*"Como faço uma troca?"*, *"Era só isso, obrigado!"* (o Gemini encerra sozinho e gera o protocolo).
 
-### 4. (Opcional) Conectar a planilha Google
-1. Crie uma planilha nova no Google Sheets.
-2. Menu **Extensões > Apps Script**, apague o conteúdo e cole o arquivo `apps-script/Code.gs`.
-3. No editor, selecione a função **`criarAbas`** e clique em **Executar** (autorize o acesso).
-   Isso cria as abas com dados de exemplo — edite-as à vontade.
-4. **Implantar > Nova implantação > App da Web** — Executar como: *Eu*; Quem pode acessar: *Qualquer pessoa*.
-5. Copie a URL gerada para `SHEETS_WEBAPP_URL` no `.env`.
-
-> Sem a planilha, o bot usa os dados de exemplo de `src/sheets.js` e grava os logs em `./logs`.
-
-### 5. Rodar no WhatsApp
+### 3. Subir o bot
 ```bash
 npm start
 ```
-1. Escaneie o QR Code em **WhatsApp > Aparelhos conectados > Conectar um aparelho**.
-2. De **outro celular**, envie `#teste` para o número conectado → o atendimento começa.
-3. Converse normalmente. Para encerrar: diga que não precisa de mais nada ou envie `encerrar`.
+
+### 4. Deixar o bot acessível pela internet
+A Uazapi precisa conseguir chamar o seu computador. Para testes, use um túnel gratuito
+em **outro terminal**:
+```bash
+npx cloudflared tunnel --url http://localhost:3000
+# ou: ngrok http 3000
+```
+Ele mostra uma URL do tipo `https://algo.trycloudflare.com`.
+
+### 5. Configurar o webhook na Uazapi
+```bash
+npm run webhook -- https://algo.trycloudflare.com/webhook
+```
+(Ou no painel da Uazapi: webhook da instância → URL acima, evento **messages**, excluir mensagens
+**enviadas pela API**.) Rode `npm run webhook` sem URL para ver a configuração atual.
+
+> A URL do túnel muda sempre que você o reinicia — repita o passo 5 quando isso acontecer.
+
+### 6. Testar
+De **outro celular**, envie `#teste` para o número do bot e converse.
 
 ## Como o atendimento funciona
 
-- **Início:** só quando o cliente envia a palavra `PALAVRA_INICIO` (padrão `#teste`) — assim o bot
-  não responde seus contatos pessoais. Você também pode restringir com `NUMEROS_PERMITIDOS`.
-- **Conversa:** o Gemini mantém o histórico e responde usando apenas os dados da planilha.
-- **Encerramento** (qualquer um destes):
-  - o cliente diz que acabou → o Gemini se despede e encerra;
-  - o cliente envia `encerrar`, `sair` ou `finalizar`;
-  - `TIMEOUT_MINUTOS` sem mensagens.
-- **Ao encerrar:** gera protocolo, pede ao Gemini um resumo + assunto e grava na aba `Atendimentos`.
+- **Início:** quando o cliente envia `PALAVRA_INICIO` (padrão `#teste`). Deixe vazio no `.env`
+  para qualquer mensagem iniciar. `NUMEROS_PERMITIDOS` limita quem o bot atende.
+- **Conversa:** o Gemini mantém o histórico e responde só com os dados de `dados/base.json`.
+  A Uazapi mostra "digitando..." antes de cada resposta.
+- **Encerramento:** o cliente diz que acabou (o Gemini encerra sozinho), envia `encerrar`/`sair`,
+  ou fica `TIMEOUT_MINUTOS` sem responder.
+- **Ao encerrar:** envia protocolo e grava resumo + assunto em `logs/atendimentos.jsonl`
+  (todas as mensagens ficam em `logs/mensagens.jsonl`).
 
-## Avisos
-- `whatsapp-web.js` é uma biblioteca **não oficial**. Para testes, use de preferência um número secundário.
-- A cota gratuita do Gemini tem limite de requisições por minuto; se estourar, o bot avisa o cliente.
-- Para personalizar a atendente, edite o texto em `montarInstrucoes()` em `src/gemini.js`.
+## Se o bot não responder
+- Rode com `DEBUG_WEBHOOK=1 npm start` para ver no terminal o JSON exato que a Uazapi está enviando.
+- Confira se o túnel está no ar abrindo a URL no navegador (deve mostrar "Bot de atendimento no ar").
+- Mensagens de grupo, de mídia sem texto e do próprio bot são ignoradas de propósito.

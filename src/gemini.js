@@ -22,7 +22,7 @@ REGRAS:
 - Não use ${MARCADOR_FIM} em nenhuma outra situação.
 ${nomeCliente ? `- O nome do cliente no WhatsApp é "${nomeCliente}".` : ''}
 
-BASE DE DADOS (vinda da planilha):
+BASE DE DADOS (arquivo dados/base.json):
 ${JSON.stringify(base, null, 2)}
 `.trim();
 }
@@ -47,7 +47,7 @@ export async function responder(conversa, mensagem) {
   return { texto: texto || 'Desculpe, não entendi. Pode repetir?', encerrar };
 }
 
-/** Pede ao Gemini um resumo do atendimento para gravar na planilha. */
+/** Pede ao Gemini um resumo do atendimento para gravar no registro. */
 export async function resumirAtendimento(historico) {
   const transcricao = historico.map((m) => `${m.autor}: ${m.texto}`).join('\n');
   try {

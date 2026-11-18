@@ -2,7 +2,7 @@
 // É independente do canal — usada tanto pelo WhatsApp quanto pelo simulador de terminal.
 import { config } from './config.js';
 import { criarConversa, responder, resumirAtendimento } from './gemini.js';
-import { carregarBaseConhecimento, registrarMensagem, registrarAtendimento } from './sheets.js';
+import { carregarBaseConhecimento, registrarMensagem, registrarAtendimento } from './armazenamento.js';
 
 const COMANDOS_ENCERRAR = ['encerrar', 'sair', 'finalizar', '#fim'];
 

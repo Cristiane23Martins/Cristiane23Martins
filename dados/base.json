@@ -1,0 +1,18 @@
+{
+  "produtos": [
+    { "codigo": "P001", "nome": "Camiseta Básica", "preco": "R$ 49,90", "estoque": 35 },
+    { "codigo": "P002", "nome": "Calça Jeans", "preco": "R$ 149,90", "estoque": 12 },
+    { "codigo": "P003", "nome": "Tênis Casual", "preco": "R$ 229,90", "estoque": 0 }
+  ],
+  "faq": [
+    { "pergunta": "Qual o horário de funcionamento?", "resposta": "Segunda a sexta, 9h às 18h; sábado, 9h às 13h." },
+    { "pergunta": "Qual o prazo de entrega?", "resposta": "De 3 a 7 dias úteis para capitais e até 12 dias úteis para o interior." },
+    { "pergunta": "Como faço uma troca?", "resposta": "Trocas em até 30 dias após o recebimento, com etiqueta e nota fiscal." },
+    { "pergunta": "Quais as formas de pagamento?", "resposta": "Pix (5% de desconto), cartão em até 6x sem juros e boleto." }
+  ],
+  "pedidos": [
+    { "numero": "1001", "cliente": "Maria", "status": "Em transporte", "previsao": "22/11" },
+    { "numero": "1002", "cliente": "João", "status": "Entregue", "previsao": "-" },
+    { "numero": "1003", "cliente": "Ana", "status": "Aguardando pagamento", "previsao": "-" }
+  ]
+}

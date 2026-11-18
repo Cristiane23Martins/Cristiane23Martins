@@ -1,20 +1,19 @@
 {
   "name": "bot-atendimento-whatsapp-gemini",
-  "version": "1.0.0",
-  "description": "Bot de atendimento simulado no WhatsApp usando Gemini (API gratuita) e Google Sheets",
+  "version": "2.0.0",
+  "description": "Bot de atendimento simulado no WhatsApp (Uazapi) usando Gemini (API gratuita)",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/servidor.js",
   "scripts": {
-    "start": "node src/index.js",
-    "simular": "node src/simulador.js"
+    "start": "node src/servidor.js",
+    "simular": "node src/simulador.js",
+    "webhook": "node src/configurar-webhook.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
-    "dotenv": "^16.4.5",
-    "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.26.0"
+    "dotenv": "^16.4.5"
   }
 }
