@@ -1,11 +1,14 @@
-// Base de conhecimento (dados/base.json) e registros locais (pasta logs/).
+// Base de conhecimento e registros.
+// Com SHEETS_WEBAPP_URL: lê/grava na planilha Google (via Apps Script).
+// Sem ela: usa dados/base.json e grava em logs/.
 import fs from 'node:fs';
 import path from 'node:path';
+import { config } from './config.js';
 
 const ARQUIVO_BASE = path.resolve('dados', 'base.json');
+let cache = null;
 
-/** Lê dados/base.json a cada atendimento — edite o arquivo sem reiniciar o bot. */
-export function carregarBaseConhecimento() {
+function baseLocal() {
   try {
     return JSON.parse(fs.readFileSync(ARQUIVO_BASE, 'utf8'));
   } catch (err) {
@@ -14,17 +17,45 @@ export function carregarBaseConhecimento() {
   }
 }
 
-function gravar(arquivo, dados) {
-  fs.mkdirSync('logs', { recursive: true });
-  fs.appendFileSync(path.join('logs', arquivo), JSON.stringify(dados) + '\n');
+/** Produtos, FAQ e Pedidos (cache de 1 minuto quando vem da planilha). */
+export async function carregarBaseConhecimento() {
+  if (!config.sheetsUrl) return baseLocal();
+  if (cache && Date.now() - cache.em < 60 * 1000) return cache.dados;
+  try {
+    const resp = await fetch(`${config.sheetsUrl}?acao=base`);
+    const dados = await resp.json();
+    cache = { em: Date.now(), dados };
+    return dados;
+  } catch (err) {
+    console.warn('⚠️  Não consegui ler a planilha, usando dados/base.json:', err.message);
+    return cache?.dados || baseLocal();
+  }
 }
 
-/** Cada mensagem trocada → logs/mensagens.jsonl */
+async function gravar(acao, dados) {
+  if (!config.sheetsUrl) {
+    fs.mkdirSync('logs', { recursive: true });
+    fs.appendFileSync(path.join('logs', `${acao}.jsonl`), JSON.stringify(dados) + '\n');
+    return;
+  }
+  try {
+    await fetch(config.sheetsUrl, {
+      method: 'POST',
+      // text/plain funciona melhor com o Apps Script
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ acao, ...dados }),
+    });
+  } catch (err) {
+    console.warn(`⚠️  Falha ao gravar "${acao}" na planilha:`, err.message);
+  }
+}
+
+/** Cada mensagem trocada → aba "Mensagens" */
 export function registrarMensagem({ protocolo, telefone, autor, texto }) {
-  gravar('mensagens.jsonl', { data: new Date().toISOString(), protocolo, telefone, autor, texto });
+  return gravar('mensagem', { data: new Date().toISOString(), protocolo, telefone, autor, texto });
 }
 
-/** Resumo de cada atendimento finalizado → logs/atendimentos.jsonl */
+/** Resumo de cada atendimento finalizado → aba "Atendimentos" */
 export function registrarAtendimento(dados) {
-  gravar('atendimentos.jsonl', dados);
+  return gravar('atendimento', dados);
 }

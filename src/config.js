@@ -8,6 +8,7 @@ export const config = {
 
   uazapiUrl: (process.env.UAZAPI_URL || '').replace(/\/+$/, ''),
   uazapiToken: process.env.UAZAPI_TOKEN || '',
+  sheetsUrl: (process.env.SHEETS_WEBAPP_URL || '').trim(),
   botNumero: soNumeros(process.env.BOT_NUMERO),
   porta: Number(process.env.PORTA || 3000),
 

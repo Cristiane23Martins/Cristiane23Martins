@@ -22,7 +22,7 @@ REGRAS:
 - Não use ${MARCADOR_FIM} em nenhuma outra situação.
 ${nomeCliente ? `- O nome do cliente no WhatsApp é "${nomeCliente}".` : ''}
 
-BASE DE DADOS (arquivo dados/base.json):
+BASE DE DADOS (planilha da empresa):
 ${JSON.stringify(base, null, 2)}
 `.trim();
 }
